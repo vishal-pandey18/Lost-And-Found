@@ -1,6 +1,6 @@
 # Lost & Found Portal — Backend
 
-Full Spring Boot + MySQL backend covering Phases 1-7 of the roadmap
+Full Spring Boot + MySQL backend
 (user management, lost items, found items, search, messaging, admin panel).
 
 ## 1. Prerequisites
@@ -149,14 +149,5 @@ A full vanilla HTML/CSS/JS frontend now lives in `frontend/` — see
 roadmap (home, login, register, dashboard, report lost/found, search,
 profile, admin) and talks to this backend over `fetch`.
 
-## 9. What's not built yet (by design, per roadmap's "Future Enhancements")
 
-- JWT authentication / Spring Security
-- Email notifications
-- Cloudinary image hosting (currently stores to local disk under `uploads/`)
-- OCR / AI-based matching
-- QR code verification
-- WebSocket real-time chat
-- An "edit report" UI on the frontend (the backend endpoints are ready)
 
-Happy to add JWT auth, tests, or Docker/deployment config next — just say which.
