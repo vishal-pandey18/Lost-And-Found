@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Search — Lost &amp; Found Portal</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="corkboard">
+  <div id="nav-root"></div>
+  <div class="hero">
+    <h1>Search the Board</h1>
+    <p>Filter by keyword, category, color, location, date, or status.</p>
+  </div>
+</header>
+
+<main class="page">
+
+  <div class="filter-bar">
+    <div>
+      <label for="f-keyword">Keyword</label>
+      <input type="text" id="f-keyword" placeholder="e.g. wallet">
+    </div>
+    <div>
+      <label for="f-type">Type</label>
+      <select id="f-type">
+        <option value="">All</option>
+        <option value="LOST">Lost</option>
+        <option value="FOUND">Found</option>
+      </select>
+    </div>
+    <div>
+      <label for="f-category">Category</label>
+      <input type="text" id="f-category" placeholder="e.g. Electronics">
+    </div>
+    <div>
+      <label for="f-color">Color</label>
+      <input type="text" id="f-color" placeholder="e.g. Black">
+    </div>
+    <div>
+      <label for="f-location">Location</label>
+      <input type="text" id="f-location" placeholder="e.g. Library">
+    </div>
+    <div>
+      <label for="f-date">Date</label>
+      <input type="date" id="f-date">
+    </div>
+    <div class="filter-actions">
+      <button class="btn btn-primary" id="search-btn">Search</button>
+      <button class="btn" id="clear-btn">Clear</button>
+    </div>
+  </div>
+
+  <h2 class="section-title">Results</h2>
+  <div id="results" class="item-grid">
+    <div class="empty-state">Loading…</div>
+  </div>
+</main>
+
+<footer class="site-footer">Lost &amp; Found Portal — a community project</footer>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/items.js"></script>
+<script>
+  renderNav("search");
+
+  function readParamsFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("keyword")) document.getElementById("f-keyword").value = params.get("keyword");
+  }
+
+  function currentFilters() {
+    return {
+      keyword: document.getElementById("f-keyword").value.trim(),
+      type: document.getElementById("f-type").value,
+      category: document.getElementById("f-category").value.trim(),
+      color: document.getElementById("f-color").value.trim(),
+      location: document.getElementById("f-location").value.trim(),
+      date: document.getElementById("f-date").value,
+    };
+  }
+
+  async function runSearch() {
+    const container = document.getElementById("results");
+    container.innerHTML = `<div class="empty-state">Searching…</div>`;
+    try {
+      const results = await api.search(currentFilters());
+      if (results.length === 0) {
+        container.innerHTML = `<div class="empty-state">No matching reports. Try loosening a filter.</div>`;
+        return;
+      }
+      container.innerHTML = results.map((r) => renderItemCard(r)).join("");
+    } catch (err) {
+      container.innerHTML = `<div class="empty-state">Couldn't reach the server. Is the backend running at ${API_BASE}?</div>`;
+    }
+  }
+
+  document.getElementById("search-btn").addEventListener("click", runSearch);
+  document.getElementById("clear-btn").addEventListener("click", () => {
+    ["f-keyword", "f-type", "f-category", "f-color", "f-location", "f-date"].forEach(
+      (id) => (document.getElementById(id).value = "")
+    );
+    runSearch();
+  });
+
+  readParamsFromUrl();
+  runSearch();
+  wireContactButtons("results");
+</script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Lost &amp; Found Portal</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="corkboard">
+  <div id="nav-root"></div>
+  <div class="hero">
+    <h1>Admin Panel</h1>
+    <p>Moderate reports and keep an eye on the board's health.</p>
+  </div>
+</header>
+
+<main class="page">
+
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card"><div class="num">—</div><div class="label">Users</div></div>
+    <div class="stat-card"><div class="num">—</div><div class="label">Lost Reports</div></div>
+    <div class="stat-card"><div class="num">—</div><div class="label">Found Reports</div></div>
+    <div class="stat-card"><div class="num">—</div><div class="label">Resolved Cases</div></div>
+  </div>
+
+  <h2 class="section-title">Users</h2>
+  <table id="users-table">
+    <thead>
+      <tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th></th></tr>
+    </thead>
+    <tbody><tr><td colspan="5">Loading…</td></tr></tbody>
+  </table>
+
+</main>
+
+<footer class="site-footer">Lost &amp; Found Portal — a community project</footer>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  const user = requireAuth();
+  renderNav("admin");
+
+  if (user.role !== "ADMIN") {
+    document.querySelector("main").innerHTML = `
+      <div class="empty-state">
+        You need admin access for this page. (An account becomes admin by
+        setting its role to ADMIN directly in the database — there's no
+        self-service promotion, on purpose.)
+      </div>`;
+  } else {
+    loadStats();
+    loadUsers();
+  }
+
+  async function loadStats() {
+    try {
+      const stats = await api.adminGetDashboard();
+      const grid = document.getElementById("stats-grid");
+      grid.innerHTML = `
+        <div class="stat-card"><div class="num">${stats.totalUsers}</div><div class="label">Users</div></div>
+        <div class="stat-card"><div class="num">${stats.totalLostReports}</div><div class="label">Lost Reports</div></div>
+        <div class="stat-card"><div class="num">${stats.totalFoundReports}</div><div class="label">Found Reports</div></div>
+        <div class="stat-card"><div class="num">${stats.resolvedLostCases + stats.returnedFoundCases}</div><div class="label">Resolved Cases</div></div>
+      `;
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function loadUsers() {
+    const tbody = document.querySelector("#users-table tbody");
+    try {
+      const users = await api.adminGetUsers();
+      tbody.innerHTML = users
+        .map(
+          (u) => `
+          <tr>
+            <td>${u.name}</td>
+            <td>${u.email}</td>
+            <td>${u.phone || "—"}</td>
+            <td>${u.role}</td>
+            <td>${u.id === user.id ? "" : `<button class="btn btn-small btn-danger delete-user-btn" data-id="${u.id}">Remove</button>`}</td>
+          </tr>`
+        )
+        .join("");
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="5">Couldn't load users: ${err.message}</td></tr>`;
+    }
+  }
+
+  document.querySelector("#users-table tbody").addEventListener("click", async (e) => {
+    const btn = e.target.closest(".delete-user-btn");
+    if (!btn) return;
+    if (!confirm("Remove this user and all their reports?")) return;
+    try {
+      await api.adminDeleteUser(btn.dataset.id);
+      loadUsers();
+      loadStats();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+</script>
+</body>
+</html>

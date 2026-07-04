@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lost &amp; Found Portal</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="corkboard">
+  <div id="nav-root"></div>
+  <div class="hero">
+    <h1>The Community Corkboard</h1>
+    <p>Lost something? Found something? Pin a notice and let the neighborhood help.</p>
+  </div>
+</header>
+
+<main class="page">
+
+  <div class="filter-bar">
+    <div>
+      <label for="quick-keyword">Keyword</label>
+      <input type="text" id="quick-keyword" placeholder="e.g. wallet, backpack">
+    </div>
+    <div class="filter-actions">
+      <button class="btn btn-primary" id="quick-search-btn">Search</button>
+    </div>
+  </div>
+
+  <h2 class="section-title">Recently Pinned</h2>
+  <div id="recent-items" class="item-grid">
+    <div class="empty-state">Loading recent reports…</div>
+  </div>
+
+</main>
+
+<footer class="site-footer">Lost &amp; Found Portal — a community project</footer>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/items.js"></script>
+<script>
+  renderNav("home");
+
+  document.getElementById("quick-search-btn").addEventListener("click", () => {
+    const keyword = document.getElementById("quick-keyword").value.trim();
+    window.location.href = `search.html${keyword ? `?keyword=${encodeURIComponent(keyword)}` : ""}`;
+  });
+
+  async function loadRecent() {
+    const container = document.getElementById("recent-items");
+    try {
+      const results = await api.search({});
+      const recent = results.slice(0, 9);
+      if (recent.length === 0) {
+        container.innerHTML = `<div class="empty-state">Nothing pinned yet. Be the first to report a lost or found item.</div>`;
+        return;
+      }
+      container.innerHTML = recent.map((r) => renderItemCard(r)).join("");
+    } catch (err) {
+      container.innerHTML = `<div class="empty-state">Couldn't reach the server. Is the backend running at ${API_BASE}?</div>`;
+    }
+  }
+
+  loadRecent();
+  wireContactButtons("recent-items");
+</script>
+</body>
+</html>

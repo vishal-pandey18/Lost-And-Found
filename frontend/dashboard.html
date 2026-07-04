@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Lost &amp; Found Portal</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="corkboard">
+  <div id="nav-root"></div>
+  <div class="hero">
+    <h1 id="greeting">Your Dashboard</h1>
+    <p>Manage your reports and see who's reached out.</p>
+  </div>
+</header>
+
+<main class="page">
+
+  <div class="tabs">
+    <div class="tab active" data-tab="lost">My Lost Items</div>
+    <div class="tab" data-tab="found">My Found Items</div>
+    <div class="tab" data-tab="messages">Messages</div>
+  </div>
+
+  <div id="tab-lost" class="tab-panel active">
+    <div id="lost-items" class="item-grid">
+      <div class="empty-state">Loading…</div>
+    </div>
+  </div>
+
+  <div id="tab-found" class="tab-panel">
+    <div id="found-items" class="item-grid">
+      <div class="empty-state">Loading…</div>
+    </div>
+  </div>
+
+  <div id="tab-messages" class="tab-panel">
+    <div id="messages-list">
+      <div class="empty-state">Loading…</div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="site-footer">Lost &amp; Found Portal — a community project</footer>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/nav.js"></script>
+<script src="js/items.js"></script>
+<script>
+  const user = requireAuth();
+  renderNav("dashboard");
+  document.getElementById("greeting").textContent = `Welcome back, ${user.name}`;
+
+  // --- Tab switching ---
+  document.querySelectorAll(".tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById(`tab-${tab.dataset.tab}`).classList.add("active");
+    });
+  });
+
+  // --- My Lost Items ---
+  async function loadMyLostItems() {
+    const container = document.getElementById("lost-items");
+    try {
+      const all = await api.getLostItems();
+      const mine = all.filter((i) => i.userId === user.id).map(normalizeLost);
+      if (mine.length === 0) {
+        container.innerHTML = `<div class="empty-state">You haven't reported any lost items yet. <a href="report-lost.html">Report one</a>.</div>`;
+        return;
+      }
+      container.innerHTML = mine
+        .map((item) => {
+          const actions =
+            item.status === "LOST"
+              ? `<button class="btn btn-small btn-primary resolve-lost-btn" data-id="${item.id}">Mark Resolved</button>
+                 <button class="btn btn-small btn-danger delete-lost-btn" data-id="${item.id}">Delete</button>`
+              : `<button class="btn btn-small btn-danger delete-lost-btn" data-id="${item.id}">Delete</button>`;
+          return renderItemCard(item, actions, false);
+        })
+        .join("");
+    } catch (err) {
+      container.innerHTML = `<div class="empty-state">Couldn't load your lost items: ${err.message}</div>`;
+    }
+  }
+
+  document.getElementById("lost-items").addEventListener("click", async (e) => {
+    const resolveBtn = e.target.closest(".resolve-lost-btn");
+    const deleteBtn = e.target.closest(".delete-lost-btn");
+    try {
+      if (resolveBtn) {
+        await api.markLostResolved(resolveBtn.dataset.id, user.id);
+        loadMyLostItems();
+      } else if (deleteBtn) {
+        if (confirm("Delete this report?")) {
+          await api.deleteLostItem(deleteBtn.dataset.id, user.id);
+          loadMyLostItems();
+        }
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  // --- My Found Items ---
+  async function loadMyFoundItems() {
+    const container = document.getElementById("found-items");
+    try {
+      const all = await api.getFoundItems();
+      const mine = all.filter((i) => i.userId === user.id).map(normalizeFound);
+      if (mine.length === 0) {
+        container.innerHTML = `<div class="empty-state">You haven't reported any found items yet. <a href="report-found.html">Report one</a>.</div>`;
+        return;
+      }
+      container.innerHTML = mine
+        .map((item) => {
+          const actions =
+            item.status === "FOUND"
+              ? `<button class="btn btn-small btn-primary return-found-btn" data-id="${item.id}">Mark Returned</button>
+                 <button class="btn btn-small btn-danger delete-found-btn" data-id="${item.id}">Delete</button>`
+              : `<button class="btn btn-small btn-danger delete-found-btn" data-id="${item.id}">Delete</button>`;
+          return renderItemCard(item, actions, false);
+        })
+        .join("");
+    } catch (err) {
+      container.innerHTML = `<div class="empty-state">Couldn't load your found items: ${err.message}</div>`;
+    }
+  }
+
+  document.getElementById("found-items").addEventListener("click", async (e) => {
+    const returnBtn = e.target.closest(".return-found-btn");
+    const deleteBtn = e.target.closest(".delete-found-btn");
+    try {
+      if (returnBtn) {
+        await api.markFoundReturned(returnBtn.dataset.id, user.id);
+        loadMyFoundItems();
+      } else if (deleteBtn) {
+        if (confirm("Delete this report?")) {
+          await api.deleteFoundItem(deleteBtn.dataset.id, user.id);
+          loadMyFoundItems();
+        }
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  // --- Messages ---
+  async function loadMessages() {
+    const container = document.getElementById("messages-list");
+    try {
+      const messages = await api.getMessages(user.id);
+      if (messages.length === 0) {
+        container.innerHTML = `<div class="empty-state">No messages yet.</div>`;
+        return;
+      }
+      container.innerHTML = messages
+        .map((m) => {
+          const direction = m.senderId === user.id ? `To ${escapeHtml(m.receiverName)}` : `From ${escapeHtml(m.senderName)}`;
+          return `
+            <div class="message-bubble">
+              <div class="meta">${direction} · ${new Date(m.createdAt).toLocaleString()}</div>
+              <div>${escapeHtml(m.message)}</div>
+            </div>
+          `;
+        })
+        .join("");
+    } catch (err) {
+      container.innerHTML = `<div class="empty-state">Couldn't load messages: ${err.message}</div>`;
+    }
+  }
+
+  loadMyLostItems();
+  loadMyFoundItems();
+  loadMessages();
+</script>
+</body>
+</html>

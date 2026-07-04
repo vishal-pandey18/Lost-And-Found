@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile — Lost &amp; Found Portal</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="corkboard">
+  <div id="nav-root"></div>
+  <div class="hero">
+    <h1>Your Profile</h1>
+    <p>Keep your contact details current so people can reach you.</p>
+  </div>
+</header>
+
+<main class="page">
+  <div class="card card-narrow">
+    <h2>Account Details</h2>
+    <form id="profile-form">
+      <label for="name">Full name</label>
+      <input type="text" id="name" required>
+
+      <label for="email">Email</label>
+      <input type="email" id="email" required>
+
+      <label for="phone">Phone</label>
+      <input type="text" id="phone">
+
+      <label for="newPassword">New password</label>
+      <input type="password" id="newPassword" placeholder="Leave blank to keep current password" minlength="6">
+
+      <button type="submit" class="btn btn-primary btn-block">Save Changes</button>
+      <div id="error-box"></div>
+      <div id="success-box"></div>
+    </form>
+  </div>
+</main>
+
+<footer class="site-footer">Lost &amp; Found Portal — a community project</footer>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  const user = requireAuth();
+  renderNav("profile");
+
+  async function loadProfile() {
+    try {
+      const profile = await api.getProfile(user.id);
+      document.getElementById("name").value = profile.name;
+      document.getElementById("email").value = profile.email;
+      document.getElementById("phone").value = profile.phone || "";
+    } catch (err) {
+      document.getElementById("error-box").innerHTML = `<div class="form-error">${err.message}</div>`;
+    }
+  }
+
+  document.getElementById("profile-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorBox = document.getElementById("error-box");
+    const successBox = document.getElementById("success-box");
+    errorBox.innerHTML = "";
+    successBox.innerHTML = "";
+
+    const payload = {
+      name: document.getElementById("name").value.trim(),
+      email: document.getElementById("email").value.trim(),
+      phone: document.getElementById("phone").value.trim(),
+      newPassword: document.getElementById("newPassword").value,
+    };
+
+    try {
+      const updated = await api.updateProfile(user.id, payload);
+      saveSession({ ...user, name: updated.name, email: updated.email });
+      successBox.innerHTML = `<div class="form-success">Profile updated.</div>`;
+      document.getElementById("newPassword").value = "";
+    } catch (err) {
+      errorBox.innerHTML = `<div class="form-error">${err.message}</div>`;
+    }
+  });
+
+  loadProfile();
+</script>
+</body>
+</html>

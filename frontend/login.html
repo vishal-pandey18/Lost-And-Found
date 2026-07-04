@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — Lost &amp; Found Portal</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="corkboard">
+  <div id="nav-root"></div>
+  <div class="hero">
+    <h1>Welcome Back</h1>
+    <p>Log in to report items, check messages, and manage your listings.</p>
+  </div>
+</header>
+
+<main class="page">
+  <div class="card card-narrow">
+    <h2>Log In</h2>
+    <form id="login-form">
+      <label for="email">Email</label>
+      <input type="email" id="email" required>
+
+      <label for="password">Password</label>
+      <input type="password" id="password" required>
+
+      <button type="submit" class="btn btn-primary btn-block">Log In</button>
+      <div id="error-box"></div>
+    </form>
+    <p class="form-footnote">New here? <a href="register.html">Create an account</a></p>
+  </div>
+</main>
+
+<footer class="site-footer">Lost &amp; Found Portal — a community project</footer>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/nav.js"></script>
+<script>
+  renderNav("login");
+
+  document.getElementById("login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorBox = document.getElementById("error-box");
+    errorBox.innerHTML = "";
+
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    try {
+      const user = await api.login({ email, password });
+      saveSession(user);
+      window.location.href = "dashboard.html";
+    } catch (err) {
+      errorBox.innerHTML = `<div class="form-error">${err.message}</div>`;
+    }
+  });
+</script>
+</body>
+</html>
