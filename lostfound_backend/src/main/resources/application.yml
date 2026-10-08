@@ -1,0 +1,62 @@
+server:
+  port: ${PORT:8081}
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: lostfound
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/lostfound}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:change-this-to-a-long-random-secret-in-production-min-256-bits}
+    access-token-expiration-ms: ${JWT_ACCESS_EXP:900000}
+    refresh-token-expiration-ms: ${JWT_REFRESH_EXP:604800000}
+  upload:
+    dir: ${UPLOAD_DIR:./uploads}
+    base-url: ${UPLOAD_BASE_URL:http://localhost:8080/uploads}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    max-requests-per-minute: ${RATE_LIMIT_MAX:15}
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.lostfound: DEBUG
+
+
+  #  $env:DB_URL="jdbc:postgresql://localhost:5432/lostfound"
+  #  $env:DB_USERNAME="postgres"
+  #  $env:DB_PASSWORD="<>"
+  #  $env:JWT_SECRET="xK9mP2vL8nR5wT1yU6zA3bC7dE0fG4hI9jK6lM2nO8pQ5rS1tU"
+  #  $env:PORT="8081"

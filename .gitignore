@@ -1,0 +1,44 @@
+# Environment / Secrets
+
+.env
+.env.*
+!.env.example
+
+# Node / React / Vite
+
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Java / Maven / Spring Boot
+
+target/
+*.class
+*.log
+
+# Application uploads
+
+uploads/
+
+# Deployment artifacts
+
+deploy.zip
+
+# IDE / Editor
+
+.idea/
+.vscode/
+*.iml
+
+# OS 
+
+.DS_Store
+Thumbs.db
+
+# 
+
+deploy/
