@@ -15,6 +15,7 @@ WORKDIR /app
 
 # Non-root user - don't run the app as root
 RUN addgroup -S spring && adduser -S spring -G spring
+RUN mkdir -p /app/uploads && chown -R spring:spring /app/uploads
 USER spring:spring
 
 COPY --from=build /app/target/*.jar app.jar
