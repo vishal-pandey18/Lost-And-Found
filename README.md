@@ -2,23 +2,22 @@
 
 A full-stack web application for reporting lost and found items. People post what they've lost or found, get notified when a found item plausibly matches something they lost, and can claim found items. Claims go through a moderation flow.
 
-Live demo:https://lost-and-found-alpha-ruby.vercel.app/login
+Live demo:https://lost-and-found-alpha-ruby.vercel.app
 API docs (Swagger): https://lost-and-found-3xd2.onrender.com/swagger-ui.html
 
 > The backend runs on Render's free tier, so the first request after a period of inactivity can take 30-60 seconds while it wakes up.
 
----
 
 ## Features
 
-- **Authentication:** register and login with JWT access tokens (15 min) and refresh tokens (7 days). The frontend refreshes the access token automatically when it expires.
-- **Lost and found reports:** create, edit, and soft-delete reports. Filter the feed by type, status, and category, with pagination.
-- **Photo upload:** drag-and-drop with per-file progress, multiple photos per item.
-- **Claims:** claim a found item by describing proof of ownership. Admins approve or reject claims from a moderation queue.
-- **Targeted notifications:** when a found item is reported, only users with a matching open lost report or a matching alert subscription are notified (not everyone).
-- **Alert subscriptions:** watch a category, a keyword, or both.
-- **Role-based access:** `USER` and `ADMIN` roles, enforced on the server.
-- **Responsive UI:** sidebar on desktop, drawer on mobile, loading, empty, and error states, toast notifications.
+Authentication: register and login with JWT access tokens (15 min) and refresh tokens (7 days). The frontend refreshes the access token automatically when it expires.
+Lost and found reports:create, edit, and soft-delete reports. Filter the feed by type, status, and category, with pagination.
+Photo upload:drag-and-drop with per-file progress, multiple photos per item.
+Claims:claim a found item by describing proof of ownership. Admins approve or reject claims from a moderation queue.
+Targeted notifications:when a found item is reported, only users with a matching open lost report or a matching alert subscription are notified (not everyone).
+Alert subscriptions:watch a category, a keyword, or both.
+Role-based access:`USER` and `ADMIN` roles, enforced on the server.
+Responsive UI:sidebar on desktop, drawer on mobile, loading, empty, and error states, toast notifications.
 
 ## Tech stack
 
@@ -28,7 +27,7 @@ API docs (Swagger): https://lost-and-found-3xd2.onrender.com/swagger-ui.html
 | Backend | Java 17, Spring Boot 3.3, Spring Security, Spring Data JPA |
 | Database | PostgreSQL, schema managed by Flyway migrations |
 | Auth | JWT (jjwt), BCrypt password hashing |
-| Image storage | AWS S3 |
+| Image storage | Cloudinary |
 | API docs | springdoc-openapi (Swagger UI) |
 | Hosting | Vercel (frontend), Render (backend), Neon (database) |
 
@@ -97,8 +96,8 @@ Browsing items and categories is public. Everything else requires a valid access
 - Only `FOUND` items that are `OPEN` or `CLAIMED` can be claimed.
 - You cannot claim an item you reported, or submit a second pending claim on the same item. Multiple users can claim the same item.
 - The first claim moves the item from `OPEN` to `CLAIMED`.
-- An admin **approves** a claim: the claim becomes `APPROVED`, the item becomes `RESOLVED`, and all other pending claims on that item are automatically rejected.
-- An admin **rejects** a claim: if no other claims are pending, the item goes back to `OPEN`.
+- An admin approves a claim: the claim becomes `APPROVED`, the item becomes `RESOLVED`, and all other pending claims on that item are automatically rejected.
+- An admin rejects a claim: if no other claims are pending, the item goes back to `OPEN`.
 - Every decision notifies the affected claimant.
 
 ## How notification matching works
@@ -112,7 +111,7 @@ When a `FOUND` item is created, the backend:
 
 ## Running locally
 
-**Prerequisites:** Java 17+, Maven 3.8+, Node 18+, a PostgreSQL database.
+Prerequisites: Java 17+, Maven 3.8+, Node 18+, a PostgreSQL database.
 
 ### Backend
 
@@ -125,6 +124,9 @@ $env:DB_URL="jdbc:postgresql://localhost:5432/lostfound"
 $env:DB_USERNAME="postgres"
 $env:DB_PASSWORD="your_password"
 $env:JWT_SECRET="a-random-string-of-at-least-32-characters"
+$env:CLOUDINARY_CLOUD_NAME="your_cloud_name"
+$env:CLOUDINARY_API_KEY="your_api_key"
+$env:CLOUDINARY_API_SECRET="your_api_secret"
 mvn spring-boot:run
 ```
 
@@ -135,19 +137,24 @@ export DB_URL=jdbc:postgresql://localhost:5432/lostfound
 export DB_USERNAME=postgres
 export DB_PASSWORD=your_password
 export JWT_SECRET=a-random-string-of-at-least-32-characters
+export CLOUDINARY_CLOUD_NAME=your_cloud_name
+export CLOUDINARY_API_KEY=your_api_key
+export CLOUDINARY_API_SECRET=your_api_secret
 mvn spring-boot:run
 ```
 
-Flyway creates all tables and seeds the categories on first start. Check it's up with `curl http://localhost:8080/health`. Swagger UI is at `http://localhost:8080/swagger-ui.html`.
+Flyway creates all tables and seeds the categories on first start.
+Check the health endpoint: `http://localhost:8081/health`
+Swagger UI: `http://localhost:8081/swagger-ui.html`
 
-Locally, uploaded images are saved to `./uploads` (the default `STORAGE_TYPE=local`).
+Uploaded images are stored in Cloudinary. Configure the Cloudinary environment variables before starting the backend.
 
 ### Frontend
 
 ```bash
 cd frontend
 npm install
-cp .env.example .env    
+cp .env.example .env     # set VITE_API_BASE_URL to your backend URL
 npm run dev
 ```
 
@@ -173,15 +180,14 @@ The unit tests mock the database, so they run without a Postgres instance.
 | `DB_PASSWORD` | yes | Database password |
 | `JWT_SECRET` | yes | At least 32 characters. Never reuse the default |
 | `PORT` | no | Server port (Render sets this automatically) |
-| `STORAGE_TYPE` | no | `local` (default) or `s3` |
-| `S3_BUCKET_NAME` | if `s3` | Bucket for item photos |
-| `AWS_REGION` | if `s3` | Bucket region |
-| `AWS_ACCESS_KEY_ID` | if `s3` | Read by the AWS SDK automatically |
-| `AWS_SECRET_ACCESS_KEY` | if `s3` | Read by the AWS SDK automatically |
+| `CLOUDINARY_CLOUD_NAME` | yes | Your Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | yes | Your Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | yes | Your Cloudinary API secret. Keep it private |
 | `JWT_ACCESS_EXP` | no | Access token lifetime in ms (default 900000) |
 | `JWT_REFRESH_EXP` | no | Refresh token lifetime in ms (default 604800000) |
 | `RATE_LIMIT_ENABLED` | no | Default `true` |
 | `RATE_LIMIT_MAX` | no | Write requests per minute (default 15) |
+| `CORS_ORIGINS` | no | Allowed frontend origin(s). Defaults to `http://localhost:5173` |
 
 ### Frontend
 
@@ -191,13 +197,13 @@ The unit tests mock the database, so they run without a Postgres instance.
 
 ## Deployment
 
-**Database (Neon):** create a project and copy the connection details into `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`. Migrations run automatically on backend startup.
+Database (Neon): create a project and copy the connection details into `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`. Migrations run automatically on backend startup.
 
-**Backend (Render):** create a Web Service from the `backend` directory (the included `Dockerfile` is used) and set the environment variables above. Render injects `PORT`, which the app reads.
+Backend (Render): create a Web Service from the `backend` directory (the included `Dockerfile` is used) and set the environment variables above. Render injects `PORT`, which the app reads.
 
-**Images (S3):** Render's free-tier disk is ephemeral, so local file storage loses uploads on every restart. Production uses `STORAGE_TYPE=s3` with a bucket that allows public `GetObject`, and an IAM user limited to `s3:PutObject` on that bucket.
+Images (Cloudinary): Render's free-tier disk is ephemeral, so local file storage loses uploads on every restart. Production uploads photos to Cloudinary, which stores them permanently and serves them over HTTPS. Create a free Cloudinary account and set `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` on the backend.
 
-**Frontend (Vercel):** import the `frontend` directory and set `VITE_API_BASE_URL`. A `vercel.json` rewrite sends every path to `index.html`, so refreshing on a client-side route like `/items/123` doesn't 404:
+Frontend (Vercel): import the `frontend` directory and set `VITE_API_BASE_URL`. A `vercel.json` rewrite sends every path to `index.html`, so refreshing on a client-side route like `/items/123` doesn't 404:
 
 ```json
 {
@@ -215,12 +221,11 @@ UPDATE users SET role = 'ADMIN' WHERE email = 'you@example.com';
 
 ## Design decisions
 
-- **Targeted notifications instead of broadcast.** Notifying everyone on every found item doesn't scale and reads as spam.
-- **DTOs instead of returning entities.** Avoids lazy-loading serialization problems and accidentally exposing fields like password hashes.
-- **Soft delete.** Items are flagged `is_deleted` rather than removed, so history survives disputes.
-- **Flyway with `ddl-auto: validate`.** The schema is versioned SQL; a mismatch between entities and the database fails at startup instead of silently altering tables.
-- **`FileStorageService` interface.** Local disk and S3 are interchangeable via configuration, with no changes to calling code.
-- **Stateless JWT auth.** Any backend instance can verify a token without shared session state.
+- **Targeted notifications instead of broadcast:** Notifying everyone about every found item doesn't scale and can feel like spam.
+- **DTOs instead of returning entities:** Avoids serialization problems and accidentally exposing sensitive fields such as password hashes.
+- **Soft delete:** Items are marked `is_deleted` rather than permanently removed, preserving history.
+- **Flyway with `ddl-auto: validate`:** Database schema changes are versioned, and mismatches fail at startup rather than silently altering tables.
+- **`FileStorageService` interface:** Image storage is abstracted behind an interface. The current implementation uploads images to Cloudinary and returns secure image URLs.
 
 ## Known limitations
 
